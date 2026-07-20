@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 420" role="img" aria-label="Emblème RavoHost">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1677ff"/><stop offset="1" stop-color="#2fd8ff"/></linearGradient><radialGradient id="bg" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="#102949"/><stop offset="1" stop-color="#050b16"/></radialGradient><filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="22" stdDeviation="20" flood-color="#000" flood-opacity=".45"/><feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#1b8dff" flood-opacity=".22"/></filter></defs>
+<rect x="10" y="10" width="500" height="400" rx="54" fill="url(#bg)" stroke="rgba(255,255,255,.12)"/>
+<g transform="translate(62 54)" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)">
+<path d="M185 258H90c-45 0-80-34-80-78 0-42 34-76 76-76 15 0 29 4 41 11 22-30 58-49 99-49 66 0 120 50 126 115h25c40 0 73 32 73 72 0 39-33 71-73 71h-58" stroke="#f8fbff" stroke-width="26"/>
+<path d="M122 139c24-28 61-45 102-45 45 0 84 22 107 56" stroke="url(#g)" stroke-width="9" opacity=".95"/>
+<path d="M-14 286C85 311 270 248 412 137" stroke="url(#g)" stroke-width="22"/>
+<rect x="155" y="150" width="170" height="42" rx="19" fill="#f8fbff"/><rect x="155" y="205" width="170" height="42" rx="19" fill="#f8fbff"/><rect x="155" y="260" width="170" height="42" rx="19" fill="#f8fbff"/>
+<circle cx="183" cy="171" r="10" fill="url(#g)"/><circle cx="183" cy="226" r="10" fill="url(#g)"/><circle cx="183" cy="281" r="10" fill="url(#g)"/>
+<path d="M251 171h43M251 226h43M251 281h43" stroke="url(#g)" stroke-width="7"/>
+</g>
+</svg>
