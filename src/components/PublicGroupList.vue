@@ -27,6 +27,14 @@
                         data-testid="group-name"
                         @click="!editMode && toggleGroup(group.element)"
                     />
+
+                    <span
+                        v-if="!editMode && groupOverallStatus(group.element)"
+                        class="badge rounded-pill group-status-badge ms-2"
+                        :class="'bg-' + groupStatusBadgeColor(groupOverallStatus(group.element))"
+                    >
+                        {{ groupStatusBadgeText(groupOverallStatus(group.element)) }}
+                    </span>
                 </h2>
 
                 <transition name="slide-fade-up">
@@ -296,6 +304,69 @@ export default {
         },
 
         /**
+         * Get the aggregate status of a group, based on the last heartbeat of each of its monitors
+         * @param {object} group Group to check
+         * @returns {string|null} One of "up", "down", "pending", "maintenance", "unknown", or null if the group has no monitors
+         */
+        groupOverallStatus(group) {
+            if (!group.monitorList || group.monitorList.length === 0) {
+                return null;
+            }
+
+            const statuses = group.monitorList.map((monitor) => this.statusOfLastHeartbeat(monitor.id));
+
+            if (statuses.some((status) => status === 3)) {
+                return "maintenance";
+            }
+            if (statuses.every((status) => status === 1)) {
+                return "up";
+            }
+            if (statuses.some((status) => status === 0)) {
+                return "down";
+            }
+            if (statuses.some((status) => status === 2)) {
+                return "pending";
+            }
+            return "unknown";
+        },
+
+        /**
+         * Bootstrap color variant for a group's aggregate status badge
+         * @param {string} status One of "up", "down", "pending", "maintenance", "unknown"
+         * @returns {string} Bootstrap color variant name
+         */
+        groupStatusBadgeColor(status) {
+            return (
+                {
+                    up: "primary",
+                    down: "danger",
+                    pending: "warning",
+                    maintenance: "maintenance",
+                    unknown: "secondary",
+                }[status] || "secondary"
+            );
+        },
+
+        /**
+         * Translated label for a group's aggregate status badge
+         * @param {string} status One of "up", "down", "pending", "maintenance", "unknown"
+         * @returns {string} Translated label
+         */
+        groupStatusBadgeText(status) {
+            if (status === "maintenance") {
+                return this.$t("statusMaintenance");
+            }
+            return (
+                {
+                    up: this.$t("Up"),
+                    down: this.$t("Down"),
+                    pending: this.$t("Pending"),
+                    unknown: this.$t("Unknown"),
+                }[status] || this.$t("Unknown")
+            );
+        },
+
+        /**
          * Returns certificate expiry color based on days remaining
          * @param {object} monitor Monitor to show expiry for
          * @returns {string} Color for certificate expiry
@@ -343,6 +414,11 @@ export default {
 
 .monitor-list {
     min-height: 46px;
+    border: 1px solid rgba(150, 150, 150, 0.12);
+}
+
+.dark .monitor-list {
+    border-color: rgba(255, 255, 255, 0.06);
 }
 
 .item-name {
@@ -350,6 +426,7 @@ export default {
     padding-right: 5px;
     margin: 0;
     display: inline-block;
+    font-weight: 600;
 }
 
 .btn-link {
@@ -379,10 +456,23 @@ export default {
 }
 
 .group-title {
+    font-size: 19px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+
     span {
         display: inline-block;
         min-width: 15px;
     }
+}
+
+.group-status-badge {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    vertical-align: middle;
 }
 
 .collapse-toggle {

@@ -16,7 +16,7 @@ const server = UptimeKumaServer.getInstance();
 router.get("/status/:slug", cache("5 minutes"), async (request, response) => {
     let slug = request.params.slug;
     slug = slug.toLowerCase();
-    await StatusPage.handleStatusPageResponse(response, server.indexHTML, slug);
+    await StatusPage.handleStatusPageResponse(request, response, server.indexHTML, slug);
 });
 
 router.get("/status/:slug/rss", cache("5 minutes"), async (request, response) => {
@@ -27,12 +27,12 @@ router.get("/status/:slug/rss", cache("5 minutes"), async (request, response) =>
 
 router.get("/status", cache("5 minutes"), async (request, response) => {
     let slug = "default";
-    await StatusPage.handleStatusPageResponse(response, server.indexHTML, slug);
+    await StatusPage.handleStatusPageResponse(request, response, server.indexHTML, slug);
 });
 
 router.get("/status-page", cache("5 minutes"), async (request, response) => {
     let slug = "default";
-    await StatusPage.handleStatusPageResponse(response, server.indexHTML, slug);
+    await StatusPage.handleStatusPageResponse(request, response, server.indexHTML, slug);
 });
 
 // Status page config, incident, monitor list

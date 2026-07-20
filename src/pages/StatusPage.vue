@@ -1,5 +1,5 @@
 <template>
-    <div v-if="loadedTheme" class="container mt-3">
+    <div v-if="loadedTheme" class="container status-page-shell mt-3">
         <!-- Sidebar for edit mode -->
         <div v-if="enableEditMode" class="sidebar" data-testid="edit-sidebar">
             <div class="sidebar-body">
@@ -376,35 +376,44 @@
             </template>
 
             <!-- Overall Status -->
-            <div class="shadow-box list p-4 overall-status mb-4">
-                <div v-if="Object.keys($root.publicMonitorList).length === 0 && loadedData">
-                    <font-awesome-icon icon="question-circle" class="ok" />
-                    {{ $t("No Services") }}
+            <div class="shadow-box overall-status mb-4" :class="statusBannerClass">
+                <div v-if="Object.keys($root.publicMonitorList).length === 0 && loadedData" class="status-hero-row">
+                    <font-awesome-icon icon="question-circle" class="status-hero-icon" />
+                    <div class="status-hero-title">{{ $t("No Services") }}</div>
                 </div>
 
                 <template v-else>
-                    <div v-if="allUp">
-                        <font-awesome-icon icon="check-circle" class="ok" />
-                        {{ $t("All Systems Operational") }}
+                    <div v-if="allUp" class="status-hero-row">
+                        <span class="status-hero-icon-wrap">
+                            <font-awesome-icon icon="check-circle" class="status-hero-icon" />
+                            <span class="status-pulse" aria-hidden="true"></span>
+                        </span>
+                        <div class="status-hero-title">{{ $t("All Systems Operational") }}</div>
                     </div>
 
-                    <div v-else-if="partialDown">
-                        <font-awesome-icon icon="exclamation-circle" class="warning" />
-                        {{ $t("Partially Degraded Service") }}
+                    <div v-else-if="partialDown" class="status-hero-row">
+                        <font-awesome-icon icon="exclamation-circle" class="status-hero-icon" />
+                        <div class="status-hero-title">{{ $t("Partially Degraded Service") }}</div>
                     </div>
 
-                    <div v-else-if="allDown">
-                        <font-awesome-icon icon="times-circle" class="danger" />
-                        {{ $t("Degraded Service") }}
+                    <div v-else-if="allDown" class="status-hero-row">
+                        <font-awesome-icon icon="times-circle" class="status-hero-icon" />
+                        <div class="status-hero-title">{{ $t("Degraded Service") }}</div>
                     </div>
 
-                    <div v-else-if="isMaintenance">
-                        <font-awesome-icon icon="wrench" class="status-maintenance" />
-                        {{ $t("maintenanceStatus-under-maintenance") }}
+                    <div v-else-if="isMaintenance" class="status-hero-row">
+                        <font-awesome-icon icon="wrench" class="status-hero-icon" />
+                        <div class="status-hero-title">{{ $t("maintenanceStatus-under-maintenance") }}</div>
                     </div>
 
-                    <div v-else>
-                        <font-awesome-icon icon="question-circle" style="color: #efefef" />
+                    <div v-else class="status-hero-row">
+                        <font-awesome-icon icon="question-circle" class="status-hero-icon" />
+                    </div>
+
+                    <div class="status-hero-meta">
+                        {{ $t("lastUpdatedAt", { date: lastUpdateTimeDisplay }) }}
+                        <span class="status-hero-meta-sep">·</span>
+                        {{ $t("statusPageRefreshIn", [updateCountdownText]) }}
                     </div>
                 </template>
             </div>
@@ -568,14 +577,15 @@
                 ></div>
                 <!-- eslint-enable vue/no-v-html-->
 
-                <p v-if="config.showPoweredBy" data-testid="powered-by">
+                <p v-if="config.showPoweredBy" class="powered-by" data-testid="powered-by">
                     {{ $t("Powered by") }}
                     <a target="_blank" rel="noopener noreferrer" href="https://ravohost.fr">
                         {{ $t("Uptime Kuma") }}
                     </a>
                 </p>
 
-                <div class="refresh-info mb-2">
+                <!-- Kept for e2e tests / deep links relying on this test id; the same info is now shown in the hero banner above -->
+                <div class="visually-hidden">
                     <div>{{ $t("lastUpdatedAt", { date: lastUpdateTimeDisplay }) }}</div>
                     <div data-testid="update-countdown-text">
                         {{ $t("statusPageRefreshIn", [updateCountdownText]) }}
@@ -662,6 +672,8 @@ export default {
 
     // Leave Page for vue route change
     beforeRouteLeave(to, from, next) {
+        document.body.classList.remove("status-page-body");
+
         if (this.editMode) {
             const answer = window.confirm(leavePageMsg);
             if (answer) {
@@ -671,6 +683,10 @@ export default {
             }
         }
         next();
+    },
+
+    unmounted() {
+        document.body.classList.remove("status-page-body");
     },
 
     props: {
@@ -833,6 +849,29 @@ export default {
             return this.overallStatus === STATUS_PAGE_MAINTENANCE;
         },
 
+        /**
+         * CSS class for the overall status hero banner, based on current status
+         * @returns {string} CSS class name
+         */
+        statusBannerClass() {
+            if (Object.keys(this.$root.publicMonitorList).length === 0 && this.loadedData) {
+                return "status-hero-unknown";
+            }
+            if (this.allUp) {
+                return "status-hero-ok";
+            }
+            if (this.partialDown) {
+                return "status-hero-warning";
+            }
+            if (this.allDown) {
+                return "status-hero-danger";
+            }
+            if (this.isMaintenance) {
+                return "status-hero-maintenance";
+            }
+            return "status-hero-unknown";
+        },
+
         incidentHTML() {
             if (this.incident && this.incident.content != null) {
                 return DOMPurify.sanitize(marked(this.incident.content));
@@ -978,6 +1017,8 @@ export default {
         this.baseURL = getResBaseURL();
     },
     async mounted() {
+        document.body.classList.add("status-page-body");
+
         this.slug = this.overrideSlug || this.$route.params.slug;
 
         if (!this.slug) {
@@ -1495,30 +1536,149 @@ export default {
 <style lang="scss" scoped>
 @import "../assets/vars.scss";
 
-.overall-status {
-    font-weight: bold;
-    font-size: 25px;
-
-    .ok {
-        color: $primary;
-    }
-
-    .warning {
-        color: $warning;
-    }
-
-    .danger {
-        color: $danger;
-    }
+.status-page-shell {
+    max-width: 860px;
 }
 
 h1 {
-    font-size: 30px;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
 
     img {
         vertical-align: middle;
         height: 60px;
         width: 60px;
+    }
+}
+
+// ---- Overall status hero banner ----
+.overall-status {
+    border: 1px solid transparent;
+    transition: background-color 0.2s $easing-in;
+}
+
+.status-hero-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.status-hero-icon-wrap {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.status-hero-icon {
+    font-size: 34px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.status-hero-title {
+    font-size: 21px;
+    font-weight: 700;
+}
+
+.status-hero-meta {
+    margin-top: 10px;
+    padding-left: 50px;
+    font-size: 13px;
+    opacity: 0.7;
+}
+
+.status-hero-meta-sep {
+    margin: 0 6px;
+}
+
+.status-pulse {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: status-pulse-anim 2s ease-out infinite;
+}
+
+@keyframes status-pulse-anim {
+    0% {
+        box-shadow: 0 0 0 0 rgba(22, 199, 132, 0.55);
+    }
+    70% {
+        box-shadow: 0 0 0 12px rgba(22, 199, 132, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(22, 199, 132, 0);
+    }
+}
+
+.status-hero-ok {
+    background: linear-gradient(135deg, rgba(22, 199, 132, 0.12), rgba(22, 199, 132, 0.03));
+    border-color: rgba(22, 199, 132, 0.25);
+
+    .status-hero-icon {
+        color: #16c784;
+    }
+
+    .status-pulse {
+        background-color: #16c784;
+    }
+}
+
+.status-hero-warning {
+    background: linear-gradient(135deg, rgba(248, 163, 6, 0.14), rgba(248, 163, 6, 0.03));
+    border-color: rgba(248, 163, 6, 0.3);
+
+    .status-hero-icon {
+        color: $warning;
+    }
+}
+
+.status-hero-danger {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.14), rgba(220, 53, 69, 0.03));
+    border-color: rgba(220, 53, 69, 0.3);
+
+    .status-hero-icon {
+        color: $danger;
+    }
+}
+
+.status-hero-maintenance {
+    background: linear-gradient(135deg, rgba(124, 92, 255, 0.14), rgba(124, 92, 255, 0.03));
+    border-color: rgba(124, 92, 255, 0.3);
+
+    .status-hero-icon {
+        color: $maintenance;
+    }
+}
+
+.status-hero-unknown {
+    background: rgba(150, 150, 150, 0.08);
+    border-color: rgba(150, 150, 150, 0.18);
+
+    .status-hero-icon {
+        color: #999;
+    }
+}
+
+.dark {
+    .status-hero-ok {
+        background: linear-gradient(135deg, rgba(22, 199, 132, 0.18), rgba(22, 199, 132, 0.04));
+    }
+
+    .status-hero-warning {
+        background: linear-gradient(135deg, rgba(248, 163, 6, 0.18), rgba(248, 163, 6, 0.04));
+    }
+
+    .status-hero-danger {
+        background: linear-gradient(135deg, rgba(220, 53, 69, 0.18), rgba(220, 53, 69, 0.04));
+    }
+
+    .status-hero-maintenance {
+        background: linear-gradient(135deg, rgba(124, 92, 255, 0.18), rgba(124, 92, 255, 0.04));
     }
 }
 
@@ -1697,18 +1857,21 @@ footer {
     background-color: #0d1117;
 }
 
-.status-maintenance {
-    color: $maintenance;
-    margin-right: 5px;
-}
-
 .mobile {
     h1 {
-        font-size: 22px;
+        font-size: 24px;
     }
 
-    .overall-status {
-        font-size: 20px;
+    .status-hero-icon {
+        font-size: 26px;
+    }
+
+    .status-hero-title {
+        font-size: 17px;
+    }
+
+    .status-hero-meta {
+        padding-left: 42px;
     }
 }
 
@@ -1755,10 +1918,6 @@ footer {
     }
 }
 
-.refresh-info {
-    opacity: 0.7;
-}
-
 .past-incidents-title {
     font-size: 26px;
     font-weight: normal;
@@ -1780,6 +1939,33 @@ footer {
 
     .incident-list-box {
         padding: 0;
+    }
+}
+
+footer {
+    padding-top: 24px;
+    border-top: 1px solid rgba(150, 150, 150, 0.18);
+}
+
+.powered-by {
+    margin-bottom: 4px;
+
+    a {
+        font-weight: 600;
+    }
+}
+</style>
+
+<style lang="scss">
+@import "../assets/vars.scss";
+
+// Applied to <body> only while a public status page is mounted (see mounted()/unmounted() hooks).
+// A subtle tinted backdrop lifts the white cards off the page instead of white-on-white.
+body.status-page-body {
+    background-color: #f4f6fb;
+
+    &.dark {
+        background-color: #05070c;
     }
 }
 </style>

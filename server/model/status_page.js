@@ -49,12 +49,13 @@ class StatusPage extends BeanModel {
 
     /**
      * Handle responses to status page
+     * @param {Request} request Request object
      * @param {Response} response Response object
      * @param {string} indexHTML HTML to render
      * @param {string} slug Status page slug
      * @returns {Promise<void>}
      */
-    static async handleStatusPageResponse(response, indexHTML, slug) {
+    static async handleStatusPageResponse(request, response, indexHTML, slug) {
         // Handle url with trailing slash (http://localhost:3001/status/)
         // The slug comes from the route "/status/:slug". If the slug is empty, express converts it to "index.html"
         if (slug === "index.html") {
@@ -64,7 +65,7 @@ class StatusPage extends BeanModel {
         let statusPage = await R.findOne("status_page", " slug = ? ", [slug]);
 
         if (statusPage) {
-            response.send(await StatusPage.renderHTML(indexHTML, statusPage));
+            response.send(await StatusPage.renderHTML(indexHTML, statusPage, request));
         } else {
             response.status(404).send(UptimeKumaServer.getInstance().indexHTML);
         }
@@ -155,9 +156,10 @@ class StatusPage extends BeanModel {
      * SSR for status pages
      * @param {string} indexHTML HTML page to render
      * @param {StatusPage} statusPage Status page populate HTML with
+     * @param {Request} [request] Request object, used to build an absolute URL for og:image
      * @returns {Promise<string>} the rendered html
      */
-    static async renderHTML(indexHTML, statusPage) {
+    static async renderHTML(indexHTML, statusPage, request) {
         const $ = cheerio.load(indexHTML);
 
         const description155 = marked(statusPage.description ?? "")
@@ -190,6 +192,15 @@ class StatusPage extends BeanModel {
 
         let ogType = $('<meta property="og:type" content="website" />');
         head.append(ogType);
+
+        if (request) {
+            const origin = `${request.protocol}://${request.get("host")}`;
+            const ogImage = $('<meta property="og:image" content="" />').attr(
+                "content",
+                origin + statusPage.getIcon()
+            );
+            head.append(ogImage);
+        }
 
         // Preload data
         // Add jsesc, fix https://github.com/louislam/uptime-kuma/issues/2186
