@@ -20,7 +20,10 @@ COPY --chown=node:node package.json package.json
 COPY --chown=node:node package-lock.json package-lock.json
 RUN npm ci
 COPY --chown=node:node . .
-RUN npm run build
+# V8 sizes its default heap from physical RAM alone, ignoring swap - on low-RAM
+# hosts (e.g. small VPS) that default is too small for this build and it OOMs
+# even when swap is available. Force a higher explicit ceiling.
+RUN NODE_OPTIONS=--max-old-space-size=3072 npm run build
 RUN npm prune --omit=dev
 COPY --chown=node:node --from=build_healthcheck /app/extra/healthcheck /app/extra/healthcheck
 RUN mkdir ./data
